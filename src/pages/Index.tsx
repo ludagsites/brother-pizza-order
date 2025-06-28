@@ -1,14 +1,19 @@
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
 import ProductCard from '@/components/ProductCard';
 import ProductModal from '@/components/ProductModal';
 import CartDrawer from '@/components/CartDrawer';
-import { products, categories } from '@/data/products';
+import { Button } from '@/components/ui/button';
+import { useProductStore } from '@/stores/productStore';
+import { categories } from '@/data/products';
 import { Product, ProductCategory } from '@/types';
+import { Settings } from 'lucide-react';
 
 const Index = () => {
+  const { products } = useProductStore();
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -24,7 +29,6 @@ const Index = () => {
   };
 
   const handleMenuClick = () => {
-    // Implementar menu mobile ou drawer de navegação
     console.log('Menu clicked');
   };
 
@@ -42,7 +46,7 @@ const Index = () => {
       />
 
       {/* Hero Section */}
-      <section className="hero-gradient text-white py-12">
+      <section className="hero-gradient text-white py-12 relative">
         <div className="container px-4 text-center">
           <h1 className="text-4xl md:text-6xl font-bold mb-4">
             Brother's Pizzaria
@@ -54,6 +58,18 @@ const Index = () => {
             Delivery rápido • Ingredientes frescos • Sabor incomparável
           </p>
         </div>
+        
+        {/* Admin Access Button */}
+        <Link to="/admin">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="absolute top-4 right-4 bg-white/10 border-white/20 text-white hover:bg-white/20"
+          >
+            <Settings className="h-4 w-4 mr-2" />
+            Admin
+          </Button>
+        </Link>
       </section>
 
       {/* Products Grid */}
