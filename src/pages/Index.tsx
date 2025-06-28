@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -7,6 +6,7 @@ import ProductCard from '@/components/ProductCard';
 import ProductModal from '@/components/ProductModal';
 import CartDrawer from '@/components/CartDrawer';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProductStore } from '@/stores/productStore';
 import { categories } from '@/data/products';
 import { Product, ProductCategory } from '@/types';
@@ -23,6 +23,17 @@ const Index = () => {
     ? products 
     : products.filter(product => product.category === selectedCategory);
 
+  // Organizar pizzas por tamanho
+  const pizzas = filteredProducts.filter(product => product.category === 'pizzas');
+  const otherProducts = filteredProducts.filter(product => product.category !== 'pizzas');
+
+  // Categorizar pizzas por tamanho baseado no preço
+  const pizzasBySize = {
+    media: pizzas.filter(pizza => pizza.price <= 39.90),
+    grande: pizzas.filter(pizza => pizza.price > 39.90 && pizza.price <= 49.90),
+    familia: pizzas.filter(pizza => pizza.price > 49.90)
+  };
+
   const handleProductClick = (product: Product) => {
     setSelectedProduct(product);
     setIsProductModalOpen(true);
@@ -31,6 +42,18 @@ const Index = () => {
   const handleMenuClick = () => {
     console.log('Menu clicked');
   };
+
+  const renderProductGrid = (products: Product[]) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {products.map((product) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          onAddToCart={handleProductClick}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -72,27 +95,80 @@ const Index = () => {
         </Link>
       </section>
 
-      {/* Products Grid */}
+      {/* Products Section */}
       <main className="container px-4 py-8">
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            {selectedCategory === 'all' ? 'Todos os Produtos' : 
-             categories.find(c => c.id === selectedCategory)?.name}
-          </h2>
-          <p className="text-gray-600">
-            {filteredProducts.length} {filteredProducts.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
-          </p>
-        </div>
+        {selectedCategory === 'pizzas' || selectedCategory === 'all' ? (
+          <div className="mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-6">🍕 Nossas Pizzas</h2>
+            
+            <Tabs defaultValue="media" className="w-full">
+              <TabsList className="grid w-full grid-cols-3 mb-8">
+                <TabsTrigger value="media" className="text-sm">
+                  Média ({pizzasBySize.media.length})
+                </TabsTrigger>
+                <TabsTrigger value="grande" className="text-sm">
+                  Grande ({pizzasBySize.grande.length})
+                </TabsTrigger>
+                <TabsTrigger value="familia" className="text-sm">
+                  Família ({pizzasBySize.familia.length})
+                </TabsTrigger>
+              </TabsList>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={handleProductClick}
-            />
-          ))}
-        </div>
+              <TabsContent value="media" className="space-y-6">
+                <div className="mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">Pizza Média</h3>
+                  <p className="text-gray-600">Ideal para 1-2 pessoas • Até R$ 39,90</p>
+                </div>
+                {pizzasBySize.media.length > 0 ? (
+                  renderProductGrid(pizzasBySize.media)
+                ) : (
+                  <p className="text-center text-gray-500 py-8">Nenhuma pizza média disponível no momento</p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="grande" className="space-y-6">
+                <div className="mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">Pizza Grande</h3>
+                  <p className="text-gray-600">Ideal para 2-3 pessoas • R$ 39,91 - R$ 49,90</p>
+                </div>
+                {pizzasBySize.grande.length > 0 ? (
+                  renderProductGrid(pizzasBySize.grande)
+                ) : (
+                  <p className="text-center text-gray-500 py-8">Nenhuma pizza grande disponível no momento</p>
+                )}
+              </TabsContent>
+
+              <TabsContent value="familia" className="space-y-6">
+                <div className="mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800 mb-2">Pizza Família</h3>
+                  <p className="text-gray-600">Ideal para 4+ pessoas • Acima de R$ 49,90</p>
+                </div>
+                {pizzasBySize.familia.length > 0 ? (
+                  renderProductGrid(pizzasBySize.familia)
+                ) : (
+                  <p className="text-center text-gray-500 py-8">Nenhuma pizza família disponível no momento</p>
+                )}
+              </TabsContent>
+            </Tabs>
+          </div>
+        ) : null}
+
+        {/* Other Products */}
+        {selectedCategory !== 'pizzas' && otherProducts.length > 0 && (
+          <div className="mb-8">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {selectedCategory === 'all' ? 'Outros Produtos' : 
+                 categories.find(c => c.id === selectedCategory)?.name}
+              </h2>
+              <p className="text-gray-600">
+                {otherProducts.length} {otherProducts.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
+              </p>
+            </div>
+
+            {renderProductGrid(otherProducts)}
+          </div>
+        )}
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">

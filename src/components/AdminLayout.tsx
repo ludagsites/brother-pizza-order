@@ -1,101 +1,91 @@
 
-import { useState } from 'react';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { LayoutDashboard, Pizza, ClipboardList, BarChart, Menu, ArrowLeft } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  BarChart3, 
+  LogOut,
+  Pizza
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import AdminLogin from './AdminLogin';
 
-const AdminLayout = ({ children }: { children: React.ReactNode }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+interface AdminLayoutProps {
+  children: React.ReactNode;
+}
+
+const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, login, logout } = useAuth();
 
-  const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Produtos', href: '/admin/products', icon: Pizza },
-    { name: 'Pedidos', href: '/admin/orders', icon: ClipboardList },
-    { name: 'Relatórios', href: '/admin/reports', icon: BarChart },
+  if (!isAuthenticated) {
+    return <AdminLogin onLogin={login} />;
+  }
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const navItems = [
+    { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/admin/products', icon: Package, label: 'Produtos' },
+    { to: '/admin/orders', icon: ShoppingCart, label: 'Pedidos' },
+    { to: '/admin/reports', icon: BarChart3, label: 'Relatórios' },
   ];
-
-  const isActive = (href: string) => location.pathname === href;
-
-  const NavLinks = () => (
-    <>
-      {navigation.map((item) => {
-        const Icon = item.icon;
-        return (
-          <Link
-            key={item.name}
-            to={item.href}
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              isActive(item.href)
-                ? 'bg-orange-100 text-orange-900'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-            }`}
-            onClick={() => setIsMobileMenuOpen(false)}
-          >
-            <Icon className="h-4 w-4" />
-            {item.name}
-          </Link>
-        );
-      })}
-    </>
-  );
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white">
-        <div className="flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-4">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-5 w-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-64">
-                <div className="flex flex-col gap-4 pt-6">
-                  <div className="flex items-center gap-2 px-3">
-                    <div className="w-8 h-8 pizza-gradient rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">B</span>
-                    </div>
-                    <div>
-                      <h2 className="font-bold text-gray-900">Brother's Admin</h2>
-                      <p className="text-xs text-gray-600">Painel de Controle</p>
-                    </div>
-                  </div>
-                  <nav className="flex flex-col gap-1">
-                    <NavLinks />
-                  </nav>
-                </div>
-              </SheetContent>
-            </Sheet>
-
-            <div className="flex items-center gap-2">
+      <header className="bg-white border-b sticky top-0 z-50">
+        <div className="container px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-2">
               <div className="w-8 h-8 pizza-gradient rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">B</span>
+                <Pizza className="h-5 w-5 text-white" />
               </div>
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Brother's Admin</h1>
-                <p className="text-xs text-gray-600 -mt-1">Painel de Controle</p>
+                <h1 className="text-xl font-bold text-gray-900">Brother's Pizzaria</h1>
+                <p className="text-xs text-gray-600">Painel Administrativo</p>
               </div>
-            </div>
-          </div>
-
-          <Link to="/">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Ver Site
+            </Link>
+            
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sair
             </Button>
-          </Link>
+          </div>
         </div>
       </header>
 
       <div className="flex">
-        {/* Sidebar Desktop */}
-        <aside className="hidden md:block w-64 bg-white border-r">
-          <nav className="flex flex-col gap-1 p-4">
-            <NavLinks />
+        {/* Sidebar */}
+        <aside className="w-64 bg-white border-r min-h-[calc(100vh-80px)] p-4">
+          <nav className="space-y-2">
+            {navItems.map((item) => (
+              <Link key={item.to} to={item.to}>
+                <Button
+                  variant={location.pathname === item.to ? 'default' : 'ghost'}
+                  className={`w-full justify-start ${
+                    location.pathname === item.to 
+                      ? 'pizza-gradient text-white hover:opacity-90' 
+                      : 'hover:bg-orange-50 hover:text-orange-600'
+                  }`}
+                >
+                  <item.icon className="h-4 w-4 mr-2" />
+                  {item.label}
+                </Button>
+              </Link>
+            ))}
           </nav>
         </aside>
 
