@@ -6,37 +6,40 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Lock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 
 interface AdminLoginProps {
   onLogin: () => void;
 }
 
 const AdminLogin = ({ onLogin }: AdminLoginProps) => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { signIn } = useSupabaseAuth();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simular verificação de senha
-    setTimeout(() => {
-      if (password === '3636') {
-        onLogin();
-        toast({
-          title: "Login realizado com sucesso!",
-          description: "Bem-vindo ao painel administrativo."
-        });
-      } else {
-        toast({
-          title: "Senha incorreta",
-          description: "Por favor, tente novamente.",
-          variant: "destructive"
-        });
-      }
-      setIsLoading(false);
-    }, 1000);
+    const { error } = await signIn(email, password);
+    
+    if (error) {
+      toast({
+        title: "Erro no login administrativo",
+        description: "Credenciais inválidas ou usuário não autorizado.",
+        variant: "destructive"
+      });
+    } else {
+      onLogin();
+      toast({
+        title: "Login administrativo realizado!",
+        description: "Bem-vindo ao painel administrativo."
+      });
+    }
+    
+    setIsLoading(false);
   };
 
   return (
@@ -48,17 +51,28 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
           </div>
           <CardTitle className="text-2xl font-bold">Painel Administrativo</CardTitle>
           <CardDescription>
-            Digite a senha para acessar o painel da Brother's Pizzaria
+            Entre com suas credenciais administrativas
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="admin-email">Email</Label>
               <Input
-                id="password"
+                id="admin-email"
+                type="email"
+                placeholder="admin@brotherspizzaria.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="admin-password">Senha</Label>
+              <Input
+                id="admin-password"
                 type="password"
-                placeholder="Digite sua senha"
+                placeholder="Digite sua senha administrativa"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

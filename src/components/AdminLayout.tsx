@@ -1,7 +1,6 @@
 
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { 
   LayoutDashboard, 
   Package, 
@@ -10,7 +9,8 @@ import {
   LogOut,
   Pizza
 } from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import AuthGuard from './AuthGuard';
 import AdminLogin from './AdminLogin';
 
 interface AdminLayoutProps {
@@ -20,16 +20,37 @@ interface AdminLayoutProps {
 const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout } = useAuth();
+  const { user, signOut } = useSupabaseAuth();
 
-  if (!isAuthenticated) {
-    return <AdminLogin onLogin={login} />;
-  }
+  // Verificar se é um usuário admin (pode ser implementado com roles posteriormente)
+  const isAdmin = user && user.email === 'admin@brotherspizzaria.com';
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await signOut();
     navigate('/');
   };
+
+  if (!user) {
+    return (
+      <AuthGuard requireAuth={true}>
+        <AdminLogin onLogin={() => {}} />
+      </AuthGuard>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Acesso Negado</h1>
+          <p className="text-gray-600 mb-6">Você não tem permissão para acessar o painel administrativo.</p>
+          <Button onClick={() => navigate('/')} variant="outline">
+            Voltar ao Início
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const navItems = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
@@ -54,15 +75,20 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
               </div>
             </Link>
             
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              size="sm"
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-gray-600">
+                Olá, {user.user_metadata?.name || user.email}
+              </span>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
           </div>
         </div>
       </header>
