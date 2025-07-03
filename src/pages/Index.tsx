@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import CategoryFilter from '@/components/CategoryFilter';
@@ -7,17 +8,38 @@ import ProductModal from '@/components/ProductModal';
 import CartDrawer from '@/components/CartDrawer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useProductStore } from '@/stores/productStore';
+import { useSupabaseProductStore } from '@/stores/supabaseProductStore';
 import { categories } from '@/data/products';
 import { Product, ProductCategory } from '@/types';
 import { Settings } from 'lucide-react';
 
 const Index = () => {
-  const { products } = useProductStore();
+  const { 
+    products, 
+    loading, 
+    error, 
+    fetchProducts, 
+    subscribeToChanges, 
+    unsubscribeFromChanges 
+  } = useSupabaseProductStore();
+
   const [selectedCategory, setSelectedCategory] = useState<ProductCategory | 'all'>('all');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+
+  useEffect(() => {
+    // Buscar produtos inicialmente
+    fetchProducts();
+    
+    // Configurar atualizações em tempo real
+    subscribeToChanges();
+
+    // Cleanup na desmontagem
+    return () => {
+      unsubscribeFromChanges();
+    };
+  }, [fetchProducts, subscribeToChanges, unsubscribeFromChanges]);
 
   const filteredProducts = selectedCategory === 'all' 
     ? products 
@@ -54,6 +76,28 @@ const Index = () => {
       ))}
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando produtos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Erro ao carregar produtos: {error}</p>
+          <Button onClick={fetchProducts}>Tentar novamente</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

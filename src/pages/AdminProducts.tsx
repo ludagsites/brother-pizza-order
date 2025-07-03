@@ -1,337 +1,202 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSupabaseProductStore } from '@/stores/supabaseProductStore';
 import AdminLayout from '@/components/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { useProductStore } from '@/stores/productStore';
-import { Product } from '@/types';
-import { Plus, Edit, Trash2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { Package, Eye, EyeOff } from 'lucide-react';
 
 const AdminProducts = () => {
-  const { products, addProduct, updateProduct, deleteProduct, toggleAvailability } = useProductStore();
+  const { 
+    products, 
+    loading, 
+    error, 
+    fetchProducts, 
+    updateProductAvailability,
+    subscribeToChanges,
+    unsubscribeFromChanges
+  } = useSupabaseProductStore();
+  
   const { toast } = useToast();
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    category: '',
-    image: '/placeholder.svg'
-  });
+  const [updatingProduct, setUpdatingProduct] = useState<string | null>(null);
 
-  const categories = [
-    { value: 'pizzas', label: 'Pizzas' },
-    { value: 'bebidas', label: 'Bebidas' },
-    { value: 'sobremesas', label: 'Sobremesas' },
-    { value: 'promoções', label: 'Promoções' }
-  ];
+  useEffect(() => {
+    fetchProducts();
+    subscribeToChanges();
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      description: '',
-      price: '',
-      category: '',
-      image: '/placeholder.svg'
-    });
-  };
+    return () => {
+      unsubscribeFromChanges();
+    };
+  }, [fetchProducts, subscribeToChanges, unsubscribeFromChanges]);
 
-  const handleAddProduct = () => {
-    if (!formData.name || !formData.description || !formData.price || !formData.category) {
+  const handleAvailabilityToggle = async (productId: string, currentAvailable: boolean) => {
+    setUpdatingProduct(productId);
+    
+    const result = await updateProductAvailability(productId, !currentAvailable);
+    
+    if (result.success) {
+      toast({
+        title: "Produto atualizado",
+        description: `Produto ${!currentAvailable ? 'ativado' : 'desativado'} com sucesso!`,
+      });
+    } else {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
+        description: result.error || "Erro ao atualizar produto",
+        variant: "destructive",
       });
-      return;
     }
-
-    addProduct({
-      name: formData.name,
-      description: formData.description,
-      price: parseFloat(formData.price),
-      category: formData.category as any,
-      image: formData.image,
-      available: true
-    });
-
-    toast({
-      title: "Produto adicionado!",
-      description: `${formData.name} foi adicionado ao cardápio.`
-    });
-
-    resetForm();
-    setIsAddDialogOpen(false);
+    
+    setUpdatingProduct(null);
   };
 
-  const handleEditProduct = () => {
-    if (!editingProduct || !formData.name || !formData.description || !formData.price || !formData.category) {
-      toast({
-        title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
-        variant: "destructive"
-      });
-      return;
+  const getCategoryName = (category: string) => {
+    const categories: { [key: string]: string } = {
+      'pizzas': 'Pizzas',
+      'bebidas': 'Bebidas',
+      'sobremesas': 'Sobremesas',
+      'promocoes': 'Promoções'
+    };
+    return categories[category] || category;
+  };
+
+  const getCategoryBadgeColor = (category: string) => {
+    switch (category) {
+      case 'pizzas': return 'bg-red-100 text-red-800';
+      case 'bebidas': return 'bg-blue-100 text-blue-800';
+      case 'sobremesas': return 'bg-purple-100 text-purple-800';
+      case 'promocoes': return 'bg-green-100 text-green-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
-
-    updateProduct(editingProduct.id, {
-      name: formData.name,
-      description: formData.description,
-      price: parseFloat(formData.price),
-      category: formData.category as any,
-      image: formData.image
-    });
-
-    toast({
-      title: "Produto atualizado!",
-      description: `${formData.name} foi atualizado com sucesso.`
-    });
-
-    resetForm();
-    setEditingProduct(null);
   };
 
-  const handleDeleteProduct = (product: Product) => {
-    deleteProduct(product.id);
-    toast({
-      title: "Produto removido!",
-      description: `${product.name} foi removido do cardápio.`
-    });
-  };
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando produtos...</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
-  const handleToggleAvailability = (product: Product) => {
-    toggleAvailability(product.id);
-    toast({
-      title: product.available ? "Produto marcado como indisponível" : "Produto marcado como disponível",
-      description: `${product.name} ${product.available ? 'não estará' : 'estará'} visível para os clientes.`
-    });
-  };
-
-  const openEditDialog = (product: Product) => {
-    setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      description: product.description,
-      price: product.price.toString(),
-      category: product.category,
-      image: product.image
-    });
-  };
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="text-center">
+          <p className="text-red-600 mb-4">Erro: {error}</p>
+          <Button onClick={fetchProducts}>Tentar novamente</Button>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Produtos</h1>
-            <p className="text-gray-600">Gerencie seu cardápio</p>
+            <p className="text-gray-600">Gerencie a disponibilidade dos produtos</p>
           </div>
-
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="pizza-gradient hover:opacity-90 text-white">
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Produto
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Adicionar Novo Produto</DialogTitle>
-                <DialogDescription>
-                  Preencha as informações do produto que será adicionado ao cardápio.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="name">Nome *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="description">Descrição *</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="price">Preço *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="category">Categoria *</Label>
-                  <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map((category) => (
-                        <SelectItem key={category.value} value={category.value}>
-                          {category.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleAddProduct} className="pizza-gradient hover:opacity-90 text-white">
-                  Adicionar
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-600">
+              {products.length} produtos total
+            </div>
+            <Badge variant="outline" className="bg-green-50 text-green-700">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              Atualizações em Tempo Real
+            </Badge>
+          </div>
         </div>
 
-        {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
-            <Card key={product.id} className={`${!product.available ? 'opacity-60' : ''}`}>
+            <Card key={product.id} className="relative">
               <CardHeader className="pb-3">
-                <div className="relative">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-32 object-cover rounded-lg mb-3"
-                  />
-                  {!product.available && (
-                    <Badge variant="destructive" className="absolute top-2 right-2">
-                      Indisponível
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg font-semibold mb-2">
+                      {product.name}
+                    </CardTitle>
+                    <Badge 
+                      className={`text-xs mb-3 ${getCategoryBadgeColor(product.category)}`}
+                    >
+                      {getCategoryName(product.category)}
                     </Badge>
-                  )}
+                  </div>
+                  
+                  <div className="ml-3">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-16 h-16 object-cover rounded-lg"
+                    />
+                  </div>
                 </div>
-                <CardTitle className="text-lg">{product.name}</CardTitle>
-                <CardDescription className="line-clamp-2">
+                
+                <CardDescription className="text-sm text-gray-600 line-clamp-2">
                   {product.description}
                 </CardDescription>
               </CardHeader>
+              
               <CardContent>
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-2xl font-bold text-primary">
-                    R$ {product.price.toFixed(2).replace('.', ',')}
-                  </span>
-                  <Badge variant="outline" className="capitalize">
-                    {product.category}
-                  </Badge>
-                </div>
-                
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => openEditDialog(product)}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleToggleAvailability(product)}
-                  >
-                    {product.available ? (
-                      <ToggleRight className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <ToggleLeft className="h-4 w-4 text-red-600" />
-                    )}
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDeleteProduct(product)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-bold text-primary">
+                      R$ {product.price.toFixed(2).replace('.', ',')}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      {product.available ? (
+                        <Eye className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <EyeOff className="h-4 w-4 text-red-600" />
+                      )}
+                      <span className="text-sm font-medium">
+                        {product.available ? 'Disponível' : 'Indisponível'}
+                      </span>
+                    </div>
+                    
+                    <Switch
+                      checked={product.available}
+                      onCheckedChange={() => handleAvailabilityToggle(product.id, product.available)}
+                      disabled={updatingProduct === product.id}
+                    />
+                  </div>
+
+                  {updatingProduct === product.id && (
+                    <div className="flex items-center justify-center py-2">
+                      <div className="w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                      <span className="text-sm text-gray-600">Atualizando...</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Edit Product Dialog */}
-        <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Editar Produto</DialogTitle>
-              <DialogDescription>
-                Atualize as informações do produto.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-name">Nome *</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-description">Descrição *</Label>
-                <Textarea
-                  id="edit-description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-price">Preço *</Label>
-                <Input
-                  id="edit-price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-category">Categoria *</Label>
-                <Select value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.value} value={category.value}>
-                        {category.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEditingProduct(null)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleEditProduct} className="pizza-gradient hover:opacity-90 text-white">
-                Salvar Alterações
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {products.length === 0 && (
+          <div className="text-center py-12">
+            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Nenhum produto encontrado
+            </h3>
+            <p className="text-gray-600">
+              Adicione produtos para começar a gerenciar o cardápio
+            </p>
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
