@@ -1,58 +1,78 @@
 
-import { ShoppingCart, Menu } from 'lucide-react';
+import { Pizza, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useCartStore } from '@/stores/cartStore';
-import { Badge } from '@/components/ui/badge';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useToast } from '@/hooks/use-toast';
+import { useNavigate, Link } from 'react-router-dom';
+import CartDrawer from './CartDrawer';
 
-interface HeaderProps {
-  onCartClick: () => void;
-  onMenuClick: () => void;
-}
+const Header = () => {
+  const { user, signOut } = useSupabaseAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-const Header = ({ onCartClick, onMenuClick }: HeaderProps) => {
-  const { getTotalItems } = useCartStore();
-  const totalItems = getTotalItems();
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast({
+        title: "Erro ao sair",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Logout realizado",
+        description: "Você foi desconectado com sucesso.",
+      });
+      navigate('/');
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-      <div className="container flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onMenuClick}
-            className="md:hidden"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 pizza-gradient rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">B</span>
+    <header className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+            <div className="w-10 h-10 pizza-gradient rounded-full flex items-center justify-center">
+              <Pizza className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">Brother's</h1>
-              <p className="text-xs text-gray-600 -mt-1">Pizzaria</p>
+              <h1 className="text-xl font-bold text-gray-900">Brother's Pizzaria</h1>
+              <p className="text-xs text-gray-600">As melhores pizzas da cidade</p>
             </div>
+          </Link>
+
+          <div className="flex items-center space-x-4">
+            {user && <CartDrawer />}
+            
+            {user ? (
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <User className="h-4 w-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">
+                    Olá, {user.user_metadata?.name || 'Cliente'}
+                  </span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSignOut}
+                  className="flex items-center space-x-1"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sair</span>
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button variant="outline" size="sm">
+                  <User className="h-4 w-4 mr-2" />
+                  Entrar
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
-
-        <Button
-          onClick={onCartClick}
-          className="relative pizza-gradient hover:opacity-90 text-white"
-          size="sm"
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          Carrinho
-          {totalItems > 0 && (
-            <Badge 
-              variant="secondary" 
-              className="ml-2 bg-white text-primary hover:bg-white"
-            >
-              {totalItems}
-            </Badge>
-          )}
-        </Button>
       </div>
     </header>
   );

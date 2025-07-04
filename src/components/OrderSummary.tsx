@@ -1,157 +1,334 @@
 
+import { useState } from 'react';
+import { useCartStore } from '@/stores/cartStore';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { MapPin, Clock, CreditCard, CheckCircle } from 'lucide-react';
+import { DeliveryZone } from '@/types';
 
 interface OrderSummaryProps {
-  orderData: {
-    size: any;
-    flavors: any[];
-    customerInfo: any;
-    price: number;
-    deliveryFee: number;
-    totalPrice: number;
-  };
-  onBack: () => void;
-  onConfirm: () => void;
-  loading: boolean;
+  deliveryZones: DeliveryZone[];
+  onOrderCreate: (orderData: any) => Promise<any>;
+  isLoading: boolean;
+  hasRequiredItems: boolean;
 }
 
-const OrderSummary = ({ orderData, onBack, onConfirm, loading }: OrderSummaryProps) => {
-  const { size, flavors, customerInfo, price, deliveryFee, totalPrice } = orderData;
+const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItems }: OrderSummaryProps) => {
+  const { items, getTotal, clearCart, getItemCount } = useCartStore();
+  const { user } = useSupabaseAuth();
+  const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
+  const [customerData, setCustomerData] = useState({
+    name: user?.user_metadata?.name || '',
+    phone: user?.user_metadata?.phone || '',
+    address: '',
+    paymentMethod: '',
+    needsChange: false,
+    changeAmount: '',
+    observations: '',
+    removeIngredients: ''
+  });
+  const [orderConfirmed, setOrderConfirmed] = useState(false);
+
+  const subtotal = getTotal();
+  const deliveryFee = selectedZone?.delivery_fee || 0;
+  const total = subtotal + deliveryFee;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!hasRequiredItems) {
+      return;
+    }
+
+    const orderData = {
+      items: items.map(item => ({
+        productId: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity,
+        selectedSize: item.selectedSize,
+        selectedExtras: item.selectedExtras,
+        totalPrice: item.totalPrice
+      })),
+      total,
+      customer_name: customerData.name,
+      customer_phone: customerData.phone,
+      customer_address: customerData.address,
+      delivery_fee: deliveryFee,
+      payment_method: customerData.paymentMethod,
+      needs_change: customerData.needsChange,
+      change_amount: customerData.needsChange ? parseFloat(customerData.changeAmount) || 0 : 0,
+      observations: customerData.observations,
+      remove_ingredients: customerData.removeIngredients
+    };
+
+    const result = await onOrderCreate(orderData);
+    
+    if (result.success) {
+      setOrderConfirmed(true);
+      clearCart();
+      // Resetar formulário após 3 segundos
+      setTimeout(() => {
+        setOrderConfirmed(false);
+        setCustomerData({
+          name: user?.user_metadata?.name || '',
+          phone: user?.user_metadata?.phone || '',
+          address: '',
+          paymentMethod: '',
+          needsChange: false,
+          changeAmount: '',
+          observations: '',
+          removeIngredients: ''
+        });
+        setSelectedZone(null);
+      }, 3000);
+    }
+  };
+
+  if (orderConfirmed) {
+    return (
+      <Card className="w-full">
+        <CardContent className="p-6 text-center">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-green-600 mb-2">
+                Pedido Confirmado!
+              </h3>
+              <p className="text-gray-600 mb-2">
+                Seu pedido foi registrado com sucesso.
+              </p>
+              <div className="flex items-center justify-center text-sm text-gray-500">
+                <Clock className="h-4 w-4 mr-1" />
+                Tempo de entrega: 30-60 minutos
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-orange-100 py-4 px-4">
-      <div className="container mx-auto max-w-2xl">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="outline" size="sm" onClick={onBack} disabled={loading}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <h1 className="text-2xl md:text-3xl font-bold text-amber-900">Resumo do Pedido</h1>
-        </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          Resumo do Pedido
+          <Badge variant="secondary">
+            {getItemCount()} {getItemCount() === 1 ? 'item' : 'itens'}
+          </Badge>
+        </CardTitle>
+        <CardDescription>
+          Revise seu pedido e finalize a compra
+        </CardDescription>
+      </CardHeader>
 
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="text-amber-900 text-center text-lg md:text-xl">
-              🍕 Brother's Pizzaria
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Dados do Cliente */}
-            <div className="bg-amber-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-amber-900 mb-3 text-sm">👤 Dados do Cliente</h3>
-              <div className="space-y-1 text-xs">
-                <p><span className="font-semibold">Nome:</span> {customerInfo.name}</p>
-                <p><span className="font-semibold">Telefone:</span> {customerInfo.phone}</p>
-                <p><span className="font-semibold">Endereço:</span></p>
-                <p className="ml-4">{customerInfo.street}, {customerInfo.number}</p>
-                <p className="ml-4">{customerInfo.neighborhood}</p>
-              </div>
-            </div>
-
-            {/* Detalhes do Pedido */}
-            <div className="bg-orange-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-amber-900 mb-3 text-sm">🍕 Seu Pedido</h3>
-              <div className="space-y-3">
-                <div>
-                  <p className="font-semibold text-sm">Tamanho: {size?.name}</p>
-                  <p className="text-xs text-gray-600">{size?.description}</p>
-                </div>
-                
-                <div>
-                  <p className="font-semibold text-sm">Sabores:</p>
-                  <ul className="list-disc list-inside ml-4 space-y-1">
-                    {flavors.map((flavor) => (
-                      <li key={flavor.id} className="text-xs">
-                        <span className="font-medium">{flavor.name}</span>
-                        <p className="text-xs text-gray-600 ml-4">{flavor.description}</p>
-                        <span className="text-amber-700 font-semibold"> - R$ {flavor.price.toFixed(2).replace('.', ',')}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                {customerInfo.removeIngredients && (
-                  <div>
-                    <p className="font-semibold text-sm">🚫 Retirar ingredientes:</p>
-                    <p className="text-xs text-gray-700">{customerInfo.removeIngredients}</p>
-                  </div>
-                )}
-
-                {customerInfo.observations && (
-                  <div>
-                    <p className="font-semibold text-sm">📝 Observações:</p>
-                    <p className="text-xs text-gray-700">{customerInfo.observations}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Pagamento */}
-            <div className="bg-green-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-amber-900 mb-3 text-sm">💰 Pagamento</h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span>Valor do pedido:</span>
-                  <span className="font-semibold">R$ {price.toFixed(2).replace('.', ',')}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Taxa de entrega:</span>
-                  <span className="font-semibold">R$ {deliveryFee.toFixed(2).replace('.', ',')}</span>
-                </div>
-                <div className="border-t border-green-300 pt-2 flex justify-between">
-                  <span className="font-bold">Valor Total:</span>
-                  <span className="font-bold text-lg text-green-700">R$ {totalPrice.toFixed(2).replace('.', ',')}</span>
-                </div>
-                <p className="mt-2"><span className="font-semibold">Forma de pagamento:</span> {customerInfo.paymentMethod}</p>
-                
-                {customerInfo.paymentMethod === 'pix' && (
-                  <div className="bg-blue-100 p-3 rounded mt-2">
-                    <p className="font-semibold text-blue-800 text-xs">Chave PIX:</p>
-                    <p className="text-blue-700 text-xs">(75) 988510206 - Jeferson Barboza</p>
-                  </div>
-                )}
-
-                {customerInfo.needsChange && (
-                  <p className="text-xs"><span className="font-semibold">Troco para:</span> R$ {customerInfo.changeAmount}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Data e Hora */}
-            <div className="text-center text-xs text-gray-600">
-              <p>📅 {new Date().toLocaleDateString('pt-BR')}</p>
-              <p>🕐 {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
-              <p className="font-semibold text-amber-700">⏱️ Tempo de entrega: 30-60 minutos</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Botão Confirmar */}
-        <div className="text-center">
-          <Button
-            onClick={onConfirm}
-            disabled={loading}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 text-base font-bold rounded-full w-full sm:w-auto"
-            size="lg"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Confirmando...
-              </>
-            ) : (
-              'Confirmar Pedido'
-            )}
-          </Button>
-          
-          <p className="text-xs text-gray-600 mt-4">
-            Seu pedido será registrado e você receberá a confirmação
+      <CardContent className="space-y-4">
+        {items.length === 0 ? (
+          <p className="text-center text-gray-500 py-4">
+            Seu carrinho está vazio
           </p>
-        </div>
-      </div>
-    </div>
+        ) : (
+          <>
+            {/* Itens do carrinho */}
+            <div className="space-y-3 max-h-40 overflow-y-auto">
+              {items.map((item) => (
+                <div key={item.id} className="flex justify-between items-start text-sm">
+                  <div className="flex-1">
+                    <p className="font-medium">{item.product.name}</p>
+                    <p className="text-gray-600">Qtd: {item.quantity}</p>
+                    {item.selectedSize && (
+                      <p className="text-blue-600 text-xs">
+                        {item.selectedSize.name}
+                      </p>
+                    )}
+                    {item.selectedExtras.length > 0 && (
+                      <p className="text-green-600 text-xs">
+                        +{item.selectedExtras.map(e => e.name).join(', ')}
+                      </p>
+                    )}
+                  </div>
+                  <p className="font-medium">
+                    R$ {item.totalPrice.toFixed(2).replace('.', ',')}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <Separator />
+
+            {/* Totais */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Subtotal:</span>
+                <span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
+              </div>
+              
+              {selectedZone && (
+                <div className="flex justify-between text-sm">
+                  <span>Taxa de entrega ({selectedZone.neighborhood}):</span>
+                  <span>R$ {deliveryFee.toFixed(2).replace('.', ',')}</span>
+                </div>
+              )}
+              
+              <Separator />
+              
+              <div className="flex justify-between font-bold">
+                <span>Total:</span>
+                <span>R$ {total.toFixed(2).replace('.', ',')}</span>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Formulário de entrega */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome completo</Label>
+                <Input
+                  id="name"
+                  value={customerData.name}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input
+                  id="phone"
+                  value={customerData.phone}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, phone: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="zone">Bairro</Label>
+                <Select
+                  value={selectedZone?.id || ''}
+                  onValueChange={(value) => {
+                    const zone = deliveryZones.find(z => z.id === value);
+                    setSelectedZone(zone || null);
+                  }}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o bairro" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {deliveryZones.map((zone) => (
+                      <SelectItem key={zone.id} value={zone.id}>
+                        {zone.neighborhood} - R$ {zone.delivery_fee.toFixed(2).replace('.', ',')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="address">Endereço completo</Label>
+                <Textarea
+                  id="address"
+                  placeholder="Rua, número, complemento..."
+                  value={customerData.address}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, address: e.target.value }))}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="payment">Forma de pagamento</Label>
+                <Select
+                  value={customerData.paymentMethod}
+                  onValueChange={(value) => setCustomerData(prev => ({ ...prev, paymentMethod: value }))}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="cartao">Cartão na entrega</SelectItem>
+                    <SelectItem value="pix">PIX</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {customerData.paymentMethod === 'dinheiro' && (
+                <div className="space-y-2">
+                  <Label>
+                    <input
+                      type="checkbox"
+                      checked={customerData.needsChange}
+                      onChange={(e) => setCustomerData(prev => ({ ...prev, needsChange: e.target.checked }))}
+                      className="mr-2"
+                    />
+                    Preciso de troco
+                  </Label>
+                  {customerData.needsChange && (
+                    <Input
+                      type="number"
+                      placeholder="Valor para troco"
+                      value={customerData.changeAmount}
+                      onChange={(e) => setCustomerData(prev => ({ ...prev, changeAmount: e.target.value }))}
+                    />
+                  )}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="remove">Remover ingredientes</Label>
+                <Input
+                  id="remove"
+                  placeholder="Ex: cebola, azeitona..."
+                  value={customerData.removeIngredients}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, removeIngredients: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="obs">Observações</Label>
+                <Textarea
+                  id="obs"
+                  placeholder="Instruções especiais..."
+                  value={customerData.observations}
+                  onChange={(e) => setCustomerData(prev => ({ ...prev, observations: e.target.value }))}
+                />
+              </div>
+
+              <div className="flex items-center text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                <Clock className="h-4 w-4 mr-2 text-blue-600" />
+                <span>Tempo de entrega: 30-60 minutos</span>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full pizza-gradient hover:opacity-90 text-white"
+                disabled={isLoading || !hasRequiredItems}
+              >
+                {isLoading ? 'Processando...' : `Confirmar Pedido - R$ ${total.toFixed(2).replace('.', ',')}`}
+              </Button>
+
+              {!hasRequiredItems && (
+                <p className="text-sm text-red-600 text-center">
+                  Adicione pelo menos uma pizza e uma bebida para continuar
+                </p>
+              )}
+            </form>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
