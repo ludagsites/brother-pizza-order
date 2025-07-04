@@ -1,5 +1,4 @@
 
-@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -67,12 +66,10 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Comfortaa', cursive;
     font-weight: 500;
   }
   
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Comfortaa', cursive;
     font-weight: 700;
   }
   

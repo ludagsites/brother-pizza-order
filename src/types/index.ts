@@ -39,6 +39,12 @@ export interface Order {
   status: OrderStatus;
   customerInfo: CustomerInfo;
   createdAt: Date;
+  delivery_fee?: number;
+  payment_method?: string;
+  needs_change?: boolean;
+  change_amount?: number;
+  observations?: string;
+  remove_ingredients?: string;
 }
 
 export interface CustomerInfo {
@@ -49,4 +55,10 @@ export interface CustomerInfo {
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';
 
-export type ProductCategory = 'pizzas' | 'bebidas' | 'sobremesas' | 'promoções';
+export type ProductCategory = 'pizzas' | 'bebidas' | 'promocoes';
+
+export interface DeliveryZone {
+  id: string;
+  neighborhood: string;
+  delivery_fee: number;
+}

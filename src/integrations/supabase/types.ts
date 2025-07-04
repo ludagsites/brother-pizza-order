@@ -57,41 +57,83 @@ export type Database = {
           },
         ]
       }
+      delivery_zones: {
+        Row: {
+          created_at: string | null
+          delivery_fee: number
+          id: string
+          neighborhood: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivery_fee: number
+          id?: string
+          neighborhood: string
+        }
+        Update: {
+          created_at?: string | null
+          delivery_fee?: number
+          id?: string
+          neighborhood?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
+          change_amount: number | null
           created_at: string | null
           customer_address: string
           customer_name: string
           customer_phone: string
+          delivery_fee: number | null
+          delivery_time_estimate: string | null
           id: string
           items: Json
+          needs_change: boolean | null
           notes: string | null
+          observations: string | null
+          payment_method: string | null
+          remove_ingredients: string | null
           status: string
           total: number
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
+          change_amount?: number | null
           created_at?: string | null
           customer_address: string
           customer_name: string
           customer_phone: string
+          delivery_fee?: number | null
+          delivery_time_estimate?: string | null
           id?: string
           items?: Json
+          needs_change?: boolean | null
           notes?: string | null
+          observations?: string | null
+          payment_method?: string | null
+          remove_ingredients?: string | null
           status?: string
           total: number
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
+          change_amount?: number | null
           created_at?: string | null
           customer_address?: string
           customer_name?: string
           customer_phone?: string
+          delivery_fee?: number | null
+          delivery_time_estimate?: string | null
           id?: string
           items?: Json
+          needs_change?: boolean | null
           notes?: string | null
+          observations?: string | null
+          payment_method?: string | null
+          remove_ingredients?: string | null
           status?: string
           total?: number
           updated_at?: string | null
