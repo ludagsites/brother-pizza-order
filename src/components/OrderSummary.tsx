@@ -21,7 +21,7 @@ interface OrderSummaryProps {
 }
 
 const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItems }: OrderSummaryProps) => {
-  const { items, getTotal, clearCart, getItemCount } = useCartStore();
+  const { items, getTotalPrice, clearCart, getTotalItems } = useCartStore();
   const { user } = useSupabaseAuth();
   const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
   const [customerData, setCustomerData] = useState({
@@ -36,7 +36,7 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
   });
   const [orderConfirmed, setOrderConfirmed] = useState(false);
 
-  const subtotal = getTotal();
+  const subtotal = getTotalPrice();
   const deliveryFee = selectedZone?.delivery_fee || 0;
   const total = subtotal + deliveryFee;
 
@@ -124,7 +124,7 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
         <CardTitle className="flex items-center justify-between">
           Resumo do Pedido
           <Badge variant="secondary">
-            {getItemCount()} {getItemCount() === 1 ? 'item' : 'itens'}
+            {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'}
           </Badge>
         </CardTitle>
         <CardDescription>

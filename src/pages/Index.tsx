@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useSupabaseProductStore } from '@/stores/supabaseProductStore';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useCartStore } from '@/stores/cartStore';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import CategoryFilter from '@/components/CategoryFilter';
@@ -12,6 +13,7 @@ import { ShoppingCart, Settings } from 'lucide-react';
 const Index = () => {
   const { products, loading, fetchProducts, subscribeToChanges, unsubscribeFromChanges } = useSupabaseProductStore();
   const { user } = useSupabaseAuth();
+  const { addItem } = useCartStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   useEffect(() => {
@@ -27,6 +29,10 @@ const Index = () => {
     if (selectedCategory === 'all') return true;
     return product.category === selectedCategory;
   });
+
+  const handleAddToCart = (product: any) => {
+    addItem(product);
+  };
 
   if (loading) {
     return (
@@ -101,7 +107,7 @@ const Index = () => {
                 <ProductCard
                   key={product.id}
                   product={product}
-                  showAddToCart={user !== null}
+                  onAddToCart={handleAddToCart}
                 />
               ))}
             </div>

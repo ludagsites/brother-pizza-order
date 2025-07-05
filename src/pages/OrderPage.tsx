@@ -18,7 +18,7 @@ import { AlertCircle } from 'lucide-react';
 const OrderPage = () => {
   const { products, loading, fetchProducts, subscribeToChanges, unsubscribeFromChanges } = useSupabaseProductStore();
   const { user } = useSupabaseAuth();
-  const { items, getItemCount } = useCartStore();
+  const { items, getTotalItems, addItem } = useCartStore();
   const { zones } = useDeliveryZones();
   const { createOrder, loading: orderLoading } = useOrders();
   const navigate = useNavigate();
@@ -51,8 +51,16 @@ const OrderPage = () => {
     { id: 'bebidas', name: 'Bebidas', count: products.filter(p => p.category === 'bebidas').length },
   ];
 
+  const handleAddToCart = (product: any) => {
+    addItem(product);
+  };
+
   if (!user) {
-    return <AuthGuard requireAuth />;
+    return (
+      <AuthGuard requireAuth>
+        <div></div>
+      </AuthGuard>
+    );
   }
 
   if (loading) {
@@ -84,7 +92,7 @@ const OrderPage = () => {
           </div>
 
           {/* Alerta sobre itens obrigatórios */}
-          {!hasRequiredItems && getItemCount() > 0 && (
+          {!hasRequiredItems && getTotalItems() > 0 && (
             <Alert className="mb-6 border-orange-200 bg-orange-50">
               <AlertCircle className="h-4 w-4 text-orange-600" />
               <AlertDescription className="text-orange-800">
@@ -107,7 +115,7 @@ const OrderPage = () => {
                   <ProductCard
                     key={product.id}
                     product={product}
-                    showAddToCart={true}
+                    onAddToCart={handleAddToCart}
                   />
                 ))}
               </div>

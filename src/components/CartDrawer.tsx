@@ -7,11 +7,11 @@ import { ShoppingCart, Plus, Minus, Trash2 } from 'lucide-react';
 import { useCartStore } from '@/stores/cartStore';
 
 const CartDrawer = () => {
-  const { items, updateQuantity, removeItem, getTotal, getItemCount } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotalPrice, getTotalItems } = useCartStore();
   const [isOpen, setIsOpen] = useState(false);
 
-  const itemCount = getItemCount();
-  const total = getTotal();
+  const itemCount = getTotalItems();
+  const total = getTotalPrice();
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
