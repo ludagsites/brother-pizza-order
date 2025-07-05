@@ -44,11 +44,12 @@ const OrderPage = () => {
     return product.category === selectedCategory;
   });
 
-  // Categorias disponíveis (sem sobremesas)
+  // Categorias disponíveis (incluindo promoções)
   const categories = [
     { id: 'all', name: 'Todos', count: products.length },
     { id: 'pizzas', name: 'Pizzas', count: products.filter(p => p.category === 'pizzas').length },
     { id: 'bebidas', name: 'Bebidas', count: products.filter(p => p.category === 'bebidas').length },
+    { id: 'promocoes', name: 'Promoções', count: products.filter(p => p.category === 'promocoes').length },
   ];
 
   const handleAddToCart = (product: any) => {
