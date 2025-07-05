@@ -13,20 +13,12 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Clock, MessageCircle, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Database } from '@/integrations/supabase/types';
 
-interface Order {
-  id: string;
-  total: number;
-  status: string;
-  created_at: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_address: string;
-  items: any[];
-}
+type SupabaseOrder = Database['public']['Tables']['orders']['Row'];
 
 const MyOrders = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<SupabaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState('');
@@ -103,6 +95,13 @@ const MyOrders = () => {
     setNewMessage('');
   };
 
+  const getItemsCount = (items: any) => {
+    if (Array.isArray(items)) {
+      return items.length;
+    }
+    return 0;
+  };
+
   if (!user) {
     return (
       <AuthGuard requireAuth>
@@ -150,12 +149,12 @@ const MyOrders = () => {
                         <CardTitle className="text-lg">Pedido #{order.id.slice(-8)}</CardTitle>
                         <CardDescription className="flex items-center gap-2 mt-2">
                           <Clock className="h-4 w-4" />
-                          {getTimeAgo(order.created_at)}
+                          {getTimeAgo(order.created_at || '')}
                         </CardDescription>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-primary mb-2">
-                          R$ {order.total.toFixed(2).replace('.', ',')}
+                          R$ {order.total.toString().replace('.', ',')}
                         </div>
                         {getStatusBadge(order.status)}
                       </div>
@@ -164,7 +163,7 @@ const MyOrders = () => {
                   <CardContent>
                     <div className="flex justify-between items-center">
                       <div className="text-sm text-gray-600">
-                        {order.items?.length || 0} item(s)
+                        {getItemsCount(order.items)} item(s)
                       </div>
                       <Button
                         variant="outline"

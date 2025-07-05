@@ -6,26 +6,15 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useOrderStore } from '@/stores/orderStore';
 import { useChat } from '@/hooks/useChat';
-import { Order, OrderStatus } from '@/types';
 import { Clock, Phone, MapPin, MessageCircle, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { Database } from '@/integrations/supabase/types';
 
-interface SupabaseOrder {
-  id: string;
-  total: number;
-  status: string;
-  created_at: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_address: string;
-  items: any[];
-  user_id: string;
-}
+type SupabaseOrder = Database['public']['Tables']['orders']['Row'];
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState<SupabaseOrder[]>([]);
@@ -139,7 +128,9 @@ const AdminOrders = () => {
     }
   };
 
-  const getTimeAgo = (date: string) => {
+  const getTimeAgo = (date: string | null) => {
+    if (!date) return 'Data inválida';
+    
     const now = new Date();
     const orderDate = new Date(date);
     const diffMs = now.getTime() - orderDate.getTime();
@@ -216,7 +207,7 @@ const AdminOrders = () => {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-primary">
-                          R$ {order.total.toFixed(2).replace('.', ',')}
+                          R$ {order.total.toString().replace('.', ',')}
                         </div>
                         {getStatusBadge(order.status)}
                       </div>
@@ -309,7 +300,7 @@ const AdminOrders = () => {
                       </div>
                       <div className="text-right">
                         <div className="text-xl font-bold text-primary">
-                          R$ {order.total.toFixed(2).replace('.', ',')}
+                          R$ {order.total.toString().replace('.', ',')}
                         </div>
                         {getStatusBadge(order.status)}
                       </div>
