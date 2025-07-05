@@ -5,7 +5,7 @@ import { useSupabaseProductStore } from '@/stores/supabaseProductStore';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { ShoppingCart, Percent, Settings } from 'lucide-react';
+import { ShoppingCart, Percent, Settings, History } from 'lucide-react';
 
 const Index = () => {
   const { products, loading, fetchProducts, subscribeToChanges, unsubscribeFromChanges } = useSupabaseProductStore();
@@ -51,46 +51,66 @@ const Index = () => {
               As melhores pizzas da cidade, feitas com amor e ingredientes frescos
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              {user ? (
-                <Link to="/order">
-                  <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 font-semibold px-8 py-3 text-lg">
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Fazer Pedidos
-                  </Button>
-                </Link>
-              ) : (
-                <Link to="/auth">
-                  <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 font-semibold px-8 py-3 text-lg">
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Fazer Pedidos
-                  </Button>
-                </Link>
-              )}
-              
-              <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-orange-600 font-semibold px-8 py-3 text-lg">
-                <Percent className="mr-2 h-5 w-5" />
-                Ver Promoções
-              </Button>
+            <div className="flex flex-col items-center gap-6">
+              {/* Botão principal - Fazer Pedidos */}
+              <div>
+                {user ? (
+                  <Link to="/order">
+                    <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 font-semibold px-12 py-4 text-xl">
+                      <ShoppingCart className="mr-3 h-6 w-6" />
+                      Fazer Pedidos
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link to="/auth">
+                    <Button size="lg" className="bg-white text-orange-600 hover:bg-gray-100 font-semibold px-12 py-4 text-xl">
+                      <ShoppingCart className="mr-3 h-6 w-6" />
+                      Fazer Pedidos
+                    </Button>
+                  </Link>
+                )}
+              </div>
+
+              {/* Botões secundários */}
+              <div className="flex flex-col sm:flex-row gap-4">
+                {user && (
+                  <Link to="/my-orders">
+                    <Button size="lg" variant="outline" className="bg-transparent border-white text-white hover:bg-white hover:text-orange-600 font-semibold px-6 py-3">
+                      <History className="mr-2 h-5 w-5" />
+                      Meus Pedidos
+                    </Button>
+                  </Link>
+                )}
+                
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="bg-transparent border-white text-white hover:bg-white hover:text-orange-600 font-semibold px-6 py-3"
+                  onClick={() => document.getElementById('promocoes')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  <Percent className="mr-2 h-5 w-5" />
+                  Ver Promoções
+                </Button>
+              </div>
             </div>
           </div>
         </section>
 
         {/* Promoções Section */}
-        <section className="py-16" id="promocoes">
+        <section className="py-16 bg-gray-100" id="promocoes">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
                 Promoções Especiais
               </h2>
-              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
                 Ofertas imperdíveis para você e sua família
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               {promotions.map((promotion) => (
-                <div key={promotion.id} className="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
+                <div key={promotion.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="aspect-square">
                     <img
                       src={promotion.image || '/placeholder.svg'}

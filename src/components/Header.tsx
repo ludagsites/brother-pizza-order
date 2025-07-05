@@ -1,5 +1,5 @@
 
-import { Pizza, User, LogOut, Settings } from 'lucide-react';
+import { Pizza, User, LogOut, Settings, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -47,6 +47,17 @@ const Header = () => {
             
             {user ? (
               <div className="flex items-center space-x-3">
+                <Link to="/my-orders">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center space-x-1"
+                  >
+                    <History className="h-4 w-4" />
+                    <span className="hidden sm:inline">Meus Pedidos</span>
+                  </Button>
+                </Link>
+                
                 <div className="flex items-center space-x-2">
                   <User className="h-4 w-4 text-gray-600" />
                   <span className="text-sm font-medium text-gray-700">

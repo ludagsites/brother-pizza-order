@@ -12,8 +12,6 @@ import OrderSummary from '@/components/OrderSummary';
 import CategoryFilter from '@/components/CategoryFilter';
 import AuthGuard from '@/components/AuthGuard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
 
 const OrderPage = () => {
   const { products, loading, fetchProducts, subscribeToChanges, unsubscribeFromChanges } = useSupabaseProductStore();
@@ -33,11 +31,6 @@ const OrderPage = () => {
       unsubscribeFromChanges();
     };
   }, [fetchProducts, subscribeToChanges, unsubscribeFromChanges]);
-
-  // Verificar se há pelo menos uma pizza e uma bebida no carrinho
-  const pizzasInCart = items.filter(item => item.product.category === 'pizzas');
-  const drinksInCart = items.filter(item => item.product.category === 'bebidas');
-  const hasRequiredItems = pizzasInCart.length > 0 && drinksInCart.length > 0;
 
   const filteredProducts = products.filter(product => {
     if (selectedCategory === 'all') return true;
@@ -92,16 +85,6 @@ const OrderPage = () => {
             </p>
           </div>
 
-          {/* Alerta sobre itens obrigatórios */}
-          {!hasRequiredItems && getTotalItems() > 0 && (
-            <Alert className="mb-6 border-orange-200 bg-orange-50">
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-800">
-                Você precisa selecionar pelo menos uma pizza e uma bebida para finalizar o pedido.
-              </AlertDescription>
-            </Alert>
-          )}
-
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Produtos */}
             <div className="lg:col-span-3">
@@ -139,7 +122,7 @@ const OrderPage = () => {
                   deliveryZones={zones}
                   onOrderCreate={createOrder}
                   isLoading={orderLoading}
-                  hasRequiredItems={hasRequiredItems}
+                  hasRequiredItems={getTotalItems() > 0}
                 />
               </div>
             </div>
