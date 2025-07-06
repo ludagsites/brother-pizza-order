@@ -181,6 +181,45 @@ export type Database = {
           },
         ]
       }
+      pizza_flavors: {
+        Row: {
+          available: boolean | null
+          category: string
+          created_at: string | null
+          id: string
+          ingredients: string
+          name: string
+          price_familia: number
+          price_grande: number
+          price_media: number
+          updated_at: string | null
+        }
+        Insert: {
+          available?: boolean | null
+          category: string
+          created_at?: string | null
+          id?: string
+          ingredients: string
+          name: string
+          price_familia: number
+          price_grande: number
+          price_media: number
+          updated_at?: string | null
+        }
+        Update: {
+          available?: boolean | null
+          category?: string
+          created_at?: string | null
+          id?: string
+          ingredients?: string
+          name?: string
+          price_familia?: number
+          price_grande?: number
+          price_media?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           available: boolean | null

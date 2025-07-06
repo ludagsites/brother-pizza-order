@@ -1,17 +1,26 @@
 
-import { useState } from 'react';
-import { useCartStore } from '@/stores/cartStore';
-import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Clock, CreditCard, CheckCircle } from 'lucide-react';
-import { DeliveryZone } from '@/types';
+import { useCartStore } from '@/stores/cartStore';
+import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
+import { ShoppingCart, Trash2, Plus, Minus, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+
+interface DeliveryZone {
+  id: string;
+  neighborhood: string;
+  delivery_fee: number;
+}
 
 interface OrderSummaryProps {
   deliveryZones: DeliveryZone[];
@@ -21,312 +30,323 @@ interface OrderSummaryProps {
 }
 
 const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItems }: OrderSummaryProps) => {
-  const { items, getTotalPrice, clearCart, getTotalItems } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
   const { user } = useSupabaseAuth();
-  const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
-  const [customerData, setCustomerData] = useState({
-    name: user?.user_metadata?.name || '',
-    phone: user?.user_metadata?.phone || '',
-    address: '',
-    paymentMethod: '',
-    needsChange: false,
-    changeAmount: '',
-    observations: '',
-    removeIngredients: ''
-  });
-  const [orderConfirmed, setOrderConfirmed] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const subtotal = getTotalPrice();
+  const [customerInfo, setCustomerInfo] = useState({
+    name: '',
+    phone: '',
+    address: ''
+  });
+  const [selectedZone, setSelectedZone] = useState<DeliveryZone | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [needsChange, setNeedsChange] = useState(false);
+  const [changeAmount, setChangeAmount] = useState('');
+  const [observations, setObservations] = useState('');
+
+  const pixInfo = "PIX: (75) 988510206 - Jeferson Barboza";
+
+  const subtotal = getTotal();
   const deliveryFee = selectedZone?.delivery_fee || 0;
   const total = subtotal + deliveryFee;
+
+  useEffect(() => {
+    if (user) {
+      setCustomerInfo(prev => ({
+        ...prev,
+        name: user.user_metadata?.name || '',
+        phone: user.user_metadata?.phone || ''
+      }));
+    }
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!hasRequiredItems) {
+      toast({
+        title: "Carrinho vazio",
+        description: "Adicione pelo menos um item ao carrinho",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!paymentMethod) {
+      toast({
+        title: "Forma de pagamento obrigatória",
+        description: "Selecione uma forma de pagamento",
+        variant: "destructive",
+      });
       return;
     }
 
     const orderData = {
       items: items.map(item => ({
-        productId: item.product.id,
+        id: item.id,
         name: item.product.name,
-        price: item.product.price,
         quantity: item.quantity,
+        price: item.totalPrice,
         selectedSize: item.selectedSize,
-        selectedExtras: item.selectedExtras,
-        totalPrice: item.totalPrice
+        selectedFlavors: item.product.selectedFlavors || [],
+        description: item.product.description
       })),
       total,
-      customer_name: customerData.name,
-      customer_phone: customerData.phone,
-      customer_address: customerData.address,
+      customer_name: customerInfo.name,
+      customer_phone: customerInfo.phone,
+      customer_address: customerInfo.address,
       delivery_fee: deliveryFee,
-      payment_method: customerData.paymentMethod,
-      needs_change: customerData.needsChange,
-      change_amount: customerData.needsChange ? parseFloat(customerData.changeAmount) || 0 : 0,
-      observations: customerData.observations,
-      remove_ingredients: customerData.removeIngredients
+      payment_method: paymentMethod,
+      needs_change: needsChange && paymentMethod === 'dinheiro',
+      change_amount: needsChange && paymentMethod === 'dinheiro' ? parseFloat(changeAmount) || 0 : 0,
+      observations
     };
 
     const result = await onOrderCreate(orderData);
     
     if (result.success) {
-      setOrderConfirmed(true);
       clearCart();
-      // Resetar formulário após 3 segundos
-      setTimeout(() => {
-        setOrderConfirmed(false);
-        setCustomerData({
-          name: user?.user_metadata?.name || '',
-          phone: user?.user_metadata?.phone || '',
-          address: '',
-          paymentMethod: '',
-          needsChange: false,
-          changeAmount: '',
-          observations: '',
-          removeIngredients: ''
-        });
-        setSelectedZone(null);
-      }, 3000);
+      navigate('/my-orders');
     }
   };
 
-  if (orderConfirmed) {
-    return (
-      <Card className="w-full">
-        <CardContent className="p-6 text-center">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-green-600 mb-2">
-                Pedido Confirmado!
-              </h3>
-              <p className="text-gray-600 mb-2">
-                Seu pedido foi registrado com sucesso.
-              </p>
-              <div className="flex items-center justify-center text-sm text-gray-500">
-                <Clock className="h-4 w-4 mr-1" />
-                Tempo de entrega: 30-60 minutos
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const copyPixInfo = () => {
+    navigator.clipboard.writeText("(75) 988510206");
+    toast({
+      title: "PIX copiado!",
+      description: "Número PIX copiado para a área de transferência",
+    });
+  };
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+        <CardTitle className="flex items-center gap-2">
+          <ShoppingCart className="h-5 w-5" />
           Resumo do Pedido
-          <Badge variant="secondary">
-            {getTotalItems()} {getTotalItems() === 1 ? 'item' : 'itens'}
-          </Badge>
         </CardTitle>
         <CardDescription>
-          Revise seu pedido e finalize a compra
+          {items.length} item(s) no carrinho
         </CardDescription>
       </CardHeader>
-
-      <CardContent className="space-y-4">
-        {items.length === 0 ? (
-          <p className="text-center text-gray-500 py-4">
-            Seu carrinho está vazio
-          </p>
-        ) : (
-          <>
-            {/* Itens do carrinho */}
-            <div className="space-y-3 max-h-40 overflow-y-auto">
-              {items.map((item) => (
-                <div key={item.id} className="flex justify-between items-start text-sm">
-                  <div className="flex-1">
-                    <p className="font-medium">{item.product.name}</p>
-                    <p className="text-gray-600">Qtd: {item.quantity}</p>
-                    {item.selectedSize && (
-                      <p className="text-blue-600 text-xs">
-                        {item.selectedSize.name}
-                      </p>
-                    )}
-                    {item.selectedExtras.length > 0 && (
-                      <p className="text-green-600 text-xs">
-                        +{item.selectedExtras.map(e => e.name).join(', ')}
-                      </p>
-                    )}
-                  </div>
-                  <p className="font-medium">
-                    R$ {item.totalPrice.toFixed(2).replace('.', ',')}
-                  </p>
+      
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Cart Items */}
+          {items.length > 0 && (
+            <div>
+              <h3 className="font-semibold mb-3">Itens do Pedido</h3>
+              <ScrollArea className="h-48 border rounded-lg p-3">
+                <div className="space-y-3">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-start justify-between gap-2 p-2 border rounded">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm truncate">{item.product.name}</h4>
+                        {item.product.selectedFlavors && (
+                          <p className="text-xs text-gray-500 truncate">
+                            {item.product.selectedFlavors.map((f: any) => f.name).join(', ')}
+                          </p>
+                        )}
+                        {item.selectedSize && (
+                          <Badge variant="outline" className="text-xs mt-1">
+                            {item.selectedSize.name}
+                          </Badge>
+                        )}
+                        <p className="text-sm font-semibold text-primary">
+                          R$ {item.totalPrice.toFixed(2).replace('.', ',')}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                        >
+                          <Minus className="h-3 w-3" />
+                        </Button>
+                        <span className="text-sm w-8 text-center">{item.quantity}</span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        >
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeItem(item.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </ScrollArea>
             </div>
+          )}
 
-            <Separator />
-
-            {/* Totais */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Subtotal:</span>
-                <span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
-              </div>
-              
-              {selectedZone && (
-                <div className="flex justify-between text-sm">
-                  <span>Taxa de entrega ({selectedZone.neighborhood}):</span>
-                  <span>R$ {deliveryFee.toFixed(2).replace('.', ',')}</span>
-                </div>
-              )}
-              
-              <Separator />
-              
-              <div className="flex justify-between font-bold">
-                <span>Total:</span>
-                <span>R$ {total.toFixed(2).replace('.', ',')}</span>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Formulário de entrega */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome completo</Label>
+          {/* Customer Info */}
+          <div className="space-y-4">
+            <h3 className="font-semibold">Dados do Cliente</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <Label htmlFor="name">Nome *</Label>
                 <Input
                   id="name"
-                  value={customerData.name}
-                  onChange={(e) => setCustomerData(prev => ({ ...prev, name: e.target.value }))}
+                  value={customerInfo.name}
+                  onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
                   required
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone</Label>
+              <div>
+                <Label htmlFor="phone">Telefone *</Label>
                 <Input
                   id="phone"
-                  value={customerData.phone}
-                  onChange={(e) => setCustomerData(prev => ({ ...prev, phone: e.target.value }))}
+                  value={customerInfo.phone}
+                  onChange={(e) => setCustomerInfo(prev => ({ ...prev, phone: e.target.value }))}
                   required
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="zone">Bairro</Label>
-                <Select
-                  value={selectedZone?.id || ''}
-                  onValueChange={(value) => {
-                    const zone = deliveryZones.find(z => z.id === value);
-                    setSelectedZone(zone || null);
-                  }}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o bairro" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {deliveryZones.map((zone) => (
-                      <SelectItem key={zone.id} value={zone.id}>
-                        {zone.neighborhood} - R$ {zone.delivery_fee.toFixed(2).replace('.', ',')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address">Endereço completo</Label>
+              <div>
+                <Label htmlFor="address">Endereço *</Label>
                 <Textarea
                   id="address"
-                  placeholder="Rua, número, complemento..."
-                  value={customerData.address}
-                  onChange={(e) => setCustomerData(prev => ({ ...prev, address: e.target.value }))}
+                  value={customerInfo.address}
+                  onChange={(e) => setCustomerInfo(prev => ({ ...prev, address: e.target.value }))}
                   required
                 />
               </div>
+            </div>
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="payment">Forma de pagamento</Label>
-                <Select
-                  value={customerData.paymentMethod}
-                  onValueChange={(value) => setCustomerData(prev => ({ ...prev, paymentMethod: value }))}
-                  required
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                    <SelectItem value="cartao">Cartão na entrega</SelectItem>
-                    <SelectItem value="pix">PIX</SelectItem>
-                  </SelectContent>
-                </Select>
+          {/* Delivery Zone */}
+          <div>
+            <Label htmlFor="zone">Bairro para Entrega</Label>
+            <Select onValueChange={(value) => {
+              const zone = deliveryZones.find(z => z.id === value) || null;
+              setSelectedZone(zone);
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione seu bairro" />
+              </SelectTrigger>
+              <SelectContent>
+                {deliveryZones.map((zone) => (
+                  <SelectItem key={zone.id} value={zone.id}>
+                    {zone.neighborhood} - R$ {zone.delivery_fee.toFixed(2).replace('.', ',')}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Order Total */}
+          <div className="space-y-2 p-4 bg-gray-50 rounded-lg">
+            <div className="flex justify-between">
+              <span>Subtotal:</span>
+              <span>R$ {subtotal.toFixed(2).replace('.', ',')}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Taxa de entrega:</span>
+              <span>R$ {deliveryFee.toFixed(2).replace('.', ',')}</span>
+            </div>
+            <div className="flex justify-between font-bold text-lg border-t pt-2">
+              <span>Total:</span>
+              <span className="text-primary">R$ {total.toFixed(2).replace('.', ',')}</span>
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <Label className="text-base font-semibold">Forma de Pagamento *</Label>
+            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="mt-2">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="pix" id="pix" />
+                <Label htmlFor="pix" className="cursor-pointer">PIX</Label>
               </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="dinheiro" id="dinheiro" />
+                <Label htmlFor="dinheiro" className="cursor-pointer">Dinheiro</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="cartao" id="cartao" />
+                <Label htmlFor="cartao" className="cursor-pointer">Cartão (na entrega)</Label>
+              </div>
+            </RadioGroup>
 
-              {customerData.paymentMethod === 'dinheiro' && (
-                <div className="space-y-2">
-                  <Label>
-                    <input
-                      type="checkbox"
-                      checked={customerData.needsChange}
-                      onChange={(e) => setCustomerData(prev => ({ ...prev, needsChange: e.target.checked }))}
-                      className="mr-2"
-                    />
-                    Preciso de troco
-                  </Label>
-                  {customerData.needsChange && (
-                    <Input
-                      type="number"
-                      placeholder="Valor para troco"
-                      value={customerData.changeAmount}
-                      onChange={(e) => setCustomerData(prev => ({ ...prev, changeAmount: e.target.value }))}
-                    />
-                  )}
+            {paymentMethod === 'pix' && (
+              <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Dados PIX:</p>
+                    <p className="text-sm text-gray-600">{pixInfo}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={copyPixInfo}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copiar
+                  </Button>
                 </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="remove">Remover ingredientes</Label>
-                <Input
-                  id="remove"
-                  placeholder="Ex: cebola, azeitona..."
-                  value={customerData.removeIngredients}
-                  onChange={(e) => setCustomerData(prev => ({ ...prev, removeIngredients: e.target.value }))}
-                />
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label htmlFor="obs">Observações</Label>
-                <Textarea
-                  id="obs"
-                  placeholder="Instruções especiais..."
-                  value={customerData.observations}
-                  onChange={(e) => setCustomerData(prev => ({ ...prev, observations: e.target.value }))}
-                />
+            {paymentMethod === 'dinheiro' && (
+              <div className="mt-3 space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="needs-change"
+                    checked={needsChange}
+                    onCheckedChange={setNeedsChange}
+                  />
+                  <Label htmlFor="needs-change">Preciso de troco</Label>
+                </div>
+                {needsChange && (
+                  <div>
+                    <Label htmlFor="change-amount">Troco para quanto?</Label>
+                    <Input
+                      id="change-amount"
+                      type="number"
+                      step="0.01"
+                      value={changeAmount}
+                      onChange={(e) => setChangeAmount(e.target.value)}
+                      placeholder="Ex: 50.00"
+                    />
+                  </div>
+                )}
               </div>
+            )}
+          </div>
 
-              <div className="flex items-center text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                <Clock className="h-4 w-4 mr-2 text-blue-600" />
-                <span>Tempo de entrega: 30-60 minutos</span>
-              </div>
+          {/* Observations */}
+          <div>
+            <Label htmlFor="observations">Observações</Label>
+            <Textarea
+              id="observations"
+              value={observations}
+              onChange={(e) => setObservations(e.target.value)}
+              placeholder="Alguma observação especial para o pedido..."
+            />
+          </div>
 
-              <Button
-                type="submit"
-                className="w-full pizza-gradient hover:opacity-90 text-white"
-                disabled={isLoading || !hasRequiredItems}
-              >
-                {isLoading ? 'Processando...' : `Confirmar Pedido - R$ ${total.toFixed(2).replace('.', ',')}`}
-              </Button>
-
-              {!hasRequiredItems && (
-                <p className="text-sm text-red-600 text-center">
-                  Adicione pelo menos uma pizza e uma bebida para continuar
-                </p>
-              )}
-            </form>
-          </>
-        )}
+          <Button
+            type="submit"
+            disabled={!hasRequiredItems || isLoading || !paymentMethod}
+            className="w-full pizza-gradient hover:opacity-90 text-white"
+          >
+            {isLoading ? 'Finalizando...' : `Finalizar Pedido - R$ ${total.toFixed(2).replace('.', ',')}`}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );

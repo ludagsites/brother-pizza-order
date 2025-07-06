@@ -11,7 +11,9 @@ import ProductCard from '@/components/ProductCard';
 import OrderSummary from '@/components/OrderSummary';
 import CategoryFilter from '@/components/CategoryFilter';
 import AuthGuard from '@/components/AuthGuard';
+import PizzaBuilder from '@/components/PizzaBuilder';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const OrderPage = () => {
   const { products, loading, fetchProducts, subscribeToChanges, unsubscribeFromChanges } = useSupabaseProductStore();
@@ -21,7 +23,7 @@ const OrderPage = () => {
   const { createOrder, loading: orderLoading } = useOrders();
   const navigate = useNavigate();
   
-  const [selectedCategory, setSelectedCategory] = useState<string>('pizzas');
+  const [selectedCategory, setSelectedCategory] = useState<string>('bebidas');
 
   useEffect(() => {
     fetchProducts();
@@ -37,16 +39,20 @@ const OrderPage = () => {
     return product.category === selectedCategory;
   });
 
-  // Categorias disponíveis (incluindo promoções)
+  // Categorias disponíveis (excluindo pizzas que agora têm componente próprio)
   const categories = [
-    { id: 'all', name: 'Todos', count: products.length },
-    { id: 'pizzas', name: 'Pizzas', count: products.filter(p => p.category === 'pizzas').length },
+    { id: 'all', name: 'Todos', count: products.filter(p => p.category !== 'pizzas').length },
     { id: 'bebidas', name: 'Bebidas', count: products.filter(p => p.category === 'bebidas').length },
     { id: 'promocoes', name: 'Promoções', count: products.filter(p => p.category === 'promocoes').length },
   ];
 
   const handleAddToCart = (product: any) => {
     addItem(product);
+  };
+
+  const handleAddPizzaToCart = (pizza: any) => {
+    // Adicionar pizza personalizada ao carrinho
+    addItem(pizza);
   };
 
   if (!user) {
@@ -81,38 +87,53 @@ const OrderPage = () => {
               Fazer Pedido
             </h1>
             <p className="text-xl text-gray-600">
-              Selecione suas pizzas e bebidas favoritas
+              Monte sua pizza perfeita e escolha suas bebidas
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Produtos */}
             <div className="lg:col-span-3">
-              <CategoryFilter
-                selectedCategory={selectedCategory}
-                onCategoryChange={setSelectedCategory}
-                categories={categories}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    onAddToCart={handleAddToCart}
+              <Tabs defaultValue="pizzas" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="pizzas">🍕 Pizzas</TabsTrigger>
+                  <TabsTrigger value="outros">🥤 Bebidas & Outros</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="pizzas" className="space-y-6">
+                  <PizzaBuilder onAddToCart={handleAddPizzaToCart} />
+                </TabsContent>
+                
+                <TabsContent value="outros" className="space-y-6">
+                  <CategoryFilter
+                    selectedCategory={selectedCategory}
+                    onCategoryChange={setSelectedCategory}
+                    categories={categories}
                   />
-                ))}
-              </div>
 
-              {filteredProducts.length === 0 && (
-                <Card className="text-center py-12">
-                  <CardContent>
-                    <p className="text-xl text-gray-600">
-                      Nenhum produto encontrado nesta categoria.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {filteredProducts
+                      .filter(product => product.category !== 'pizzas')
+                      .map((product) => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onAddToCart={handleAddToCart}
+                        />
+                      ))}
+                  </div>
+
+                  {filteredProducts.filter(p => p.category !== 'pizzas').length === 0 && (
+                    <Card className="text-center py-12">
+                      <CardContent>
+                        <p className="text-xl text-gray-600">
+                          Nenhum produto encontrado nesta categoria.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+              </Tabs>
             </div>
 
             {/* Resumo do Pedido */}
