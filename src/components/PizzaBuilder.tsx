@@ -11,7 +11,7 @@ import { usePizzaFlavors } from '@/hooks/usePizzaFlavors';
 import { Pizza, Plus } from 'lucide-react';
 
 interface PizzaSize {
-  id: 'media' | 'grande' | 'familia';
+  id: 'media' | 'grande' | 'famiglia';
   name: string;
   slices: number;
   maxFlavors: number;
@@ -20,7 +20,7 @@ interface PizzaSize {
 const PIZZA_SIZES: PizzaSize[] = [
   { id: 'media', name: 'Média', slices: 6, maxFlavors: 2 },
   { id: 'grande', name: 'Grande', slices: 8, maxFlavors: 3 },
-  { id: 'familia', name: 'Família', slices: 12, maxFlavors: 4 }
+  { id: 'famiglia', name: 'Família', slices: 12, maxFlavors: 4 }
 ];
 
 const CATEGORIES = [
@@ -166,7 +166,7 @@ const PizzaBuilder = ({ onAddToCart }: PizzaBuilderProps) => {
                                 id={flavor.id}
                                 checked={isSelected}
                                 disabled={!canSelect}
-                                onCheckedChange={(checked) => handleFlavorToggle(flavor, checked as boolean)}
+                                onCheckedChange={(checked) => handleFlavorToggle(flavor, checked === true)}
                               />
                               <Label htmlFor={flavor.id} className="flex-1 cursor-pointer text-sm">
                                 <div className="flex justify-between items-start">

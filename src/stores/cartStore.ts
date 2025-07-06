@@ -9,6 +9,7 @@ interface CartStore {
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
   getTotalPrice: () => number;
+  getTotal: () => number; // Add alias for compatibility
   getTotalItems: () => number;
 }
 
@@ -79,6 +80,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
   
   getTotalPrice: () => {
     return get().items.reduce((total, item) => total + (item.totalPrice * item.quantity), 0);
+  },
+  
+  getTotal: () => {
+    return get().getTotalPrice(); // Alias for compatibility
   },
   
   getTotalItems: () => {

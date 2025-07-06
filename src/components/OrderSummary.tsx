@@ -30,7 +30,7 @@ interface OrderSummaryProps {
 }
 
 const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItems }: OrderSummaryProps) => {
-  const { items, updateQuantity, removeItem, getTotal, clearCart } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
 
   const pixInfo = "PIX: (75) 988510206 - Jeferson Barboza";
 
-  const subtotal = getTotal();
+  const subtotal = getTotalPrice();
   const deliveryFee = selectedZone?.delivery_fee || 0;
   const total = subtotal + deliveryFee;
 
@@ -90,7 +90,7 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
         quantity: item.quantity,
         price: item.totalPrice,
         selectedSize: item.selectedSize,
-        selectedFlavors: item.product.selectedFlavors || [],
+        selectedFlavors: (item.product as any).selectedFlavors || [],
         description: item.product.description
       })),
       total,
@@ -144,9 +144,9 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
                     <div key={item.id} className="flex items-start justify-between gap-2 p-2 border rounded">
                       <div className="flex-1 min-w-0">
                         <h4 className="font-medium text-sm truncate">{item.product.name}</h4>
-                        {item.product.selectedFlavors && (
+                        {(item.product as any).selectedFlavors && (
                           <p className="text-xs text-gray-500 truncate">
-                            {item.product.selectedFlavors.map((f: any) => f.name).join(', ')}
+                            {(item.product as any).selectedFlavors.map((f: any) => f.name).join(', ')}
                           </p>
                         )}
                         {item.selectedSize && (
@@ -307,7 +307,7 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
                   <Checkbox
                     id="needs-change"
                     checked={needsChange}
-                    onCheckedChange={setNeedsChange}
+                    onCheckedChange={(checked) => setNeedsChange(checked === true)}
                   />
                   <Label htmlFor="needs-change">Preciso de troco</Label>
                 </div>
