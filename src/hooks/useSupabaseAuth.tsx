@@ -28,7 +28,7 @@ export const useSupabaseAuth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, name: string, phone?: string) => {
+  const signUp = async (email: string, password: string, name: string, phone?: string, address?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -38,7 +38,8 @@ export const useSupabaseAuth = () => {
         emailRedirectTo: redirectUrl,
         data: {
           name: name,
-          phone: phone
+          phone: phone,
+          address: address
         }
       }
     });
@@ -49,6 +50,16 @@ export const useSupabaseAuth = () => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
+    });
+    return { error };
+  };
+
+  const signInWithGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`
+      }
     });
     return { error };
   };
@@ -64,6 +75,7 @@ export const useSupabaseAuth = () => {
     loading,
     signUp,
     signIn,
+    signInWithGoogle,
     signOut
   };
 };
