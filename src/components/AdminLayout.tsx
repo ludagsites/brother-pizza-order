@@ -22,7 +22,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navigate = useNavigate();
   const { user, signOut } = useSupabaseAuth();
 
-  // Verificar se é um usuário admin (pode ser implementado com roles posteriormente)
   const isAdmin = user && user.email === 'admin@brotherspizzaria.com';
 
   const handleLogout = async () => {
@@ -55,6 +54,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const navItems = [
     { to: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/admin/products', icon: Package, label: 'Produtos' },
+    { to: '/admin/pizza-flavors', icon: Pizza, label: 'Sabores Pizza' },
     { to: '/admin/orders', icon: ShoppingCart, label: 'Pedidos' },
     { to: '/admin/reports', icon: BarChart3, label: 'Relatórios' },
   ];

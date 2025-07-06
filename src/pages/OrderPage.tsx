@@ -6,12 +6,14 @@ import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { useCartStore } from '@/stores/cartStore';
 import { useDeliveryZones } from '@/hooks/useDeliveryZones';
 import { useOrders } from '@/hooks/useOrders';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import OrderSummary from '@/components/OrderSummary';
 import CategoryFilter from '@/components/CategoryFilter';
 import AuthGuard from '@/components/AuthGuard';
 import PizzaBuilder from '@/components/PizzaBuilder';
+import StoreClosedBanner from '@/components/StoreClosedBanner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -21,6 +23,7 @@ const OrderPage = () => {
   const { items, getTotalItems, addItem } = useCartStore();
   const { zones } = useDeliveryZones();
   const { createOrder, loading: orderLoading } = useOrders();
+  const { isOpen: storeIsOpen, loading: storeLoading } = useStoreSettings();
   const navigate = useNavigate();
   
   const [selectedCategory, setSelectedCategory] = useState<string>('bebidas');
@@ -40,7 +43,6 @@ const OrderPage = () => {
     return product.category === selectedCategory;
   });
 
-  // Categorias disponíveis (excluindo pizzas que agora têm componente próprio)
   const categories = [
     { id: 'all', name: 'Todos', count: products.filter(p => p.category !== 'pizzas').length },
     { id: 'bebidas', name: 'Bebidas', count: products.filter(p => p.category === 'bebidas').length },
@@ -52,7 +54,6 @@ const OrderPage = () => {
   };
 
   const handleAddPizzaToCart = (pizza: any) => {
-    // Adicionar pizza personalizada ao carrinho
     addItem(pizza);
   };
 
@@ -68,7 +69,7 @@ const OrderPage = () => {
     );
   }
 
-  if (loading) {
+  if (loading || storeLoading) {
     return (
       <>
         <Header />
@@ -87,6 +88,10 @@ const OrderPage = () => {
       <Header />
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          {/* Store Closed Banner */}
+          {!storeIsOpen && <StoreClosedBanner />}
+          
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Fazer Pedido
@@ -106,33 +111,55 @@ const OrderPage = () => {
                 </TabsList>
                 
                 <TabsContent value="pizzas" className="space-y-6">
-                  <PizzaBuilder onAddToCart={handleAddPizzaToCart} onSwitchToDrinks={handleSwitchToDrinks} />
-                </TabsContent>
-                
-                <TabsContent value="outros" className="space-y-6">
-                  <CategoryFilter
-                    selectedCategory={selectedCategory}
-                    onCategoryChange={setSelectedCategory}
-                    categories={categories}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {filteredProducts
-                      .filter(product => product.category !== 'pizzas')
-                      .map((product) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          onAddToCart={handleAddToCart}
-                        />
-                      ))}
-                  </div>
-
-                  {filteredProducts.filter(p => p.category !== 'pizzas').length === 0 && (
+                  {storeIsOpen ? (
+                    <PizzaBuilder onAddToCart={handleAddPizzaToCart} onSwitchToDrinks={handleSwitchToDrinks} />
+                  ) : (
                     <Card className="text-center py-12">
                       <CardContent>
                         <p className="text-xl text-gray-600">
-                          Nenhum produto encontrado nesta categoria.
+                          A loja está fechada no momento. Não é possível fazer pedidos.
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+                
+                <TabsContent value="outros" className="space-y-6">
+                  {storeIsOpen ? (
+                    <>
+                      <CategoryFilter
+                        selectedCategory={selectedCategory}
+                        onCategoryChange={setSelectedCategory}
+                        categories={categories}
+                      />
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        {filteredProducts
+                          .filter(product => product.category !== 'pizzas')
+                          .map((product) => (
+                            <ProductCard
+                              key={product.id}
+                              product={product}
+                              onAddToCart={handleAddToCart}
+                            />
+                          ))}
+                      </div>
+
+                      {filteredProducts.filter(p => p.category !== 'pizzas').length === 0 && (
+                        <Card className="text-center py-12">
+                          <CardContent>
+                            <p className="text-xl text-gray-600">
+                              Nenhum produto encontrado nesta categoria.
+                            </p>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </>
+                  ) : (
+                    <Card className="text-center py-12">
+                      <CardContent>
+                        <p className="text-xl text-gray-600">
+                          A loja está fechada no momento. Não é possível fazer pedidos.
                         </p>
                       </CardContent>
                     </Card>
@@ -149,6 +176,7 @@ const OrderPage = () => {
                   onOrderCreate={createOrder}
                   isLoading={orderLoading}
                   hasRequiredItems={getTotalItems() > 0}
+                  storeIsOpen={storeIsOpen}
                 />
               </div>
             </div>
