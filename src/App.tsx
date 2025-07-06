@@ -10,6 +10,7 @@ import MyOrders from "./pages/MyOrders";
 import Auth from "./pages/Auth";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminProducts from "./pages/AdminProducts";
+import AdminPizzaFlavors from "./pages/AdminPizzaFlavors";
 import AdminOrders from "./pages/AdminOrders";
 import AdminReports from "./pages/AdminReports";
 import NotFound from "./pages/NotFound";
@@ -29,6 +30,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/admin" element={<AdminDashboard />} />
           <Route path="/admin/products" element={<AdminProducts />} />
+          <Route path="/admin/pizza-flavors" element={<AdminPizzaFlavors />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/reports" element={<AdminReports />} />
           <Route path="*" element={<NotFound />} />

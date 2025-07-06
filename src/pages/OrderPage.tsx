@@ -24,6 +24,7 @@ const OrderPage = () => {
   const navigate = useNavigate();
   
   const [selectedCategory, setSelectedCategory] = useState<string>('bebidas');
+  const [activeTab, setActiveTab] = useState<string>('pizzas');
 
   useEffect(() => {
     fetchProducts();
@@ -53,6 +54,10 @@ const OrderPage = () => {
   const handleAddPizzaToCart = (pizza: any) => {
     // Adicionar pizza personalizada ao carrinho
     addItem(pizza);
+  };
+
+  const handleSwitchToDrinks = () => {
+    setActiveTab('outros');
   };
 
   if (!user) {
@@ -94,14 +99,14 @@ const OrderPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Produtos */}
             <div className="lg:col-span-3">
-              <Tabs defaultValue="pizzas" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="pizzas">🍕 Pizzas</TabsTrigger>
-                  <TabsTrigger value="outros">🥤 Bebidas & Outros</TabsTrigger>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 h-14 mb-8">
+                  <TabsTrigger value="pizzas" className="text-lg font-semibold">🍕 Pizzas</TabsTrigger>
+                  <TabsTrigger value="outros" className="text-lg font-semibold">🥤 Bebidas & Outros</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="pizzas" className="space-y-6">
-                  <PizzaBuilder onAddToCart={handleAddPizzaToCart} />
+                  <PizzaBuilder onAddToCart={handleAddPizzaToCart} onSwitchToDrinks={handleSwitchToDrinks} />
                 </TabsContent>
                 
                 <TabsContent value="outros" className="space-y-6">
@@ -138,7 +143,7 @@ const OrderPage = () => {
 
             {/* Resumo do Pedido */}
             <div className="lg:col-span-1">
-              <div className="sticky top-24">
+              <div className="sticky top-28">
                 <OrderSummary 
                   deliveryZones={zones}
                   onOrderCreate={createOrder}
