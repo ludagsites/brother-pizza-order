@@ -17,15 +17,12 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-// Detectar se estamos no GitHub Pages
-const basename = process.env.NODE_ENV === 'production' ? '/brother-pizza-order' : '';
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter basename={basename}>
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/order" element={<OrderPage />} />
