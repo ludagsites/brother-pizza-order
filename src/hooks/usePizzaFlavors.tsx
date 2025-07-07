@@ -22,6 +22,26 @@ export const usePizzaFlavors = () => {
 
   useEffect(() => {
     fetchFlavors();
+    
+    // Escutar mudanças em tempo real
+    const channel = supabase
+      .channel('pizza-flavors-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pizza_flavors'
+        },
+        () => {
+          fetchFlavors();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchFlavors = async () => {
@@ -29,7 +49,6 @@ export const usePizzaFlavors = () => {
       const { data, error } = await supabase
         .from('pizza_flavors')
         .select('*')
-        .eq('available', true)
         .order('name');
 
       if (error) throw error;
@@ -54,6 +73,22 @@ export const usePizzaFlavors = () => {
     }
   };
 
+  const updateFlavorAvailability = async (flavorId: string, available: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('pizza_flavors')
+        .update({ available })
+        .eq('id', flavorId);
+
+      if (error) throw error;
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Erro ao atualizar sabor:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const getFlavorsByCategory = (category: string) => {
     return flavors.filter(flavor => flavor.category === category);
   };
@@ -69,6 +104,7 @@ export const usePizzaFlavors = () => {
     loading,
     getFlavorsByCategory,
     getMinPrice,
-    fetchFlavors
+    fetchFlavors,
+    updateFlavorAvailability
   };
 };

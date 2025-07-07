@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +14,7 @@ import { useCartStore } from '@/stores/cartStore';
 import { useSupabaseAuth } from '@/hooks/useSupabaseAuth';
 import { ShoppingCart, Trash2, Plus, Minus, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 
 interface DeliveryZone {
   id: string;
@@ -34,6 +34,7 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
   const { user } = useSupabaseAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { isOpen: storeIsOpen } = useStoreSettings();
 
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
@@ -65,6 +66,15 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!storeIsOpen) {
+      toast({
+        title: "Loja fechada",
+        description: "A loja está fechada no momento. Não é possível fazer pedidos.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!hasRequiredItems) {
       toast({
         title: "Carrinho vazio",
@@ -341,10 +351,10 @@ const OrderSummary = ({ deliveryZones, onOrderCreate, isLoading, hasRequiredItem
 
           <Button
             type="submit"
-            disabled={!hasRequiredItems || isLoading || !paymentMethod}
+            disabled={!hasRequiredItems || isLoading || !paymentMethod || !storeIsOpen}
             className="w-full pizza-gradient hover:opacity-90 text-white"
           >
-            {isLoading ? 'Finalizando...' : `Finalizar Pedido - R$ ${total.toFixed(2).replace('.', ',')}`}
+            {!storeIsOpen ? 'Loja Fechada' : isLoading ? 'Finalizando...' : `Finalizar Pedido - R$ ${total.toFixed(2).replace('.', ',')}`}
           </Button>
         </form>
       </CardContent>

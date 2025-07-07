@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSupabaseProductStore } from '@/stores/supabaseProductStore';
@@ -176,7 +175,6 @@ const OrderPage = () => {
                   onOrderCreate={createOrder}
                   isLoading={orderLoading}
                   hasRequiredItems={getTotalItems() > 0}
-                  storeIsOpen={storeIsOpen}
                 />
               </div>
             </div>

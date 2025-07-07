@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSupabaseProductStore } from '@/stores/supabaseProductStore';
 import { usePizzaFlavors } from '@/hooks/usePizzaFlavors';
@@ -62,28 +61,22 @@ const AdminProducts = () => {
   const handleFlavorAvailabilityToggle = async (flavorId: string, currentAvailable: boolean) => {
     setUpdatingFlavor(flavorId);
     
-    try {
-      const { error } = await supabase
-        .from('pizza_flavors')
-        .update({ available: !currentAvailable })
-        .eq('id', flavorId);
-
-      if (error) throw error;
-
+    const result = await updateFlavorAvailability(flavorId, !currentAvailable);
+    
+    if (result.success) {
       toast({
         title: "Sabor atualizado",
         description: `Sabor ${!currentAvailable ? 'ativado' : 'desativado'} com sucesso!`,
       });
-    } catch (error) {
-      console.error('Erro ao atualizar sabor:', error);
+    } else {
       toast({
         title: "Erro",
-        description: "Erro ao atualizar disponibilidade do sabor",
+        description: result.error || "Erro ao atualizar sabor",
         variant: "destructive",
       });
-    } finally {
-      setUpdatingFlavor(null);
     }
+    
+    setUpdatingFlavor(null);
   };
 
   const getCategoryName = (category: string) => {
@@ -230,7 +223,7 @@ const AdminProducts = () => {
                       <div className="text-center">
                         <p className="font-medium text-gray-700">Família</p>
                         <p className="text-primary font-semibold">
-                          R$ {flavor.price_familia.toFixed(2).replace('.', ',')}
+                          R$ {flavor.price_famiglia.toFixed(2).replace('.', ',')}
                         </p>
                       </div>
                     </div>
