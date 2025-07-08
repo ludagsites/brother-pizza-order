@@ -1874,7 +1874,7 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter basename="/brother-pizza-order">
+      <BrowserRouter basename={import.meta.env.PROD ? "/brother-pizza-order" : ""}>
         <AuthProvider>
           <div className="min-h-screen bg-gray-50">
             <Header />
