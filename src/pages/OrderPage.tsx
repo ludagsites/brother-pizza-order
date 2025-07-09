@@ -18,12 +18,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const OrderPage = () => {
   const { products, loading, fetchProducts, subscribeToChanges, unsubscribeFromChanges } = useSupabaseProductStore();
-  const { user } = useSupabaseAuth();
+  const { user, loading: authLoading } = useSupabaseAuth();
   const { items, getTotalItems, addItem } = useCartStore();
   const { zones } = useDeliveryZones();
   const { createOrder, loading: orderLoading } = useOrders();
   const { isOpen: storeIsOpen, loading: storeLoading } = useStoreSettings();
   const navigate = useNavigate();
+  
+  // Debug logs
+  console.log('OrderPage - user:', user);
+  console.log('OrderPage - authLoading:', authLoading);
+  console.log('OrderPage - loading:', loading);
+  console.log('OrderPage - storeLoading:', storeLoading);
   
   const [selectedCategory, setSelectedCategory] = useState<string>('bebidas');
   const [activeTab, setActiveTab] = useState<string>('pizzas');
@@ -60,7 +66,23 @@ const OrderPage = () => {
     setActiveTab('outros');
   };
 
+  if (authLoading) {
+    console.log('OrderPage - showing auth loading');
+    return (
+      <>
+        <Header />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando autenticação...</p>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   if (!user) {
+    console.log('OrderPage - no user, showing AuthGuard');
     return (
       <AuthGuard requireAuth>
         <div></div>
@@ -69,6 +91,7 @@ const OrderPage = () => {
   }
 
   if (loading || storeLoading) {
+    console.log('OrderPage - loading products or store settings');
     return (
       <>
         <Header />
@@ -81,6 +104,8 @@ const OrderPage = () => {
       </>
     );
   }
+
+  console.log('OrderPage - rendering main content');
 
   return (
     <>

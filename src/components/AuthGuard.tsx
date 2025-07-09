@@ -12,11 +12,18 @@ const AuthGuard = ({ children, requireAuth = false }: AuthGuardProps) => {
   const { user, loading } = useSupabaseAuth();
   const navigate = useNavigate();
 
+  // Debug logs
+  console.log('AuthGuard - user:', user);
+  console.log('AuthGuard - loading:', loading);
+  console.log('AuthGuard - requireAuth:', requireAuth);
+
   useEffect(() => {
     if (!loading) {
       if (requireAuth && !user) {
+        console.log('AuthGuard - redirecting to /auth');
         navigate('/auth');
       } else if (!requireAuth && user) {
+        console.log('AuthGuard - redirecting to /');
         navigate('/');
       }
     }
